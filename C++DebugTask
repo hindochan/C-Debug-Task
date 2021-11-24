@@ -1,0 +1,119 @@
+// The following code compiles and runs but has many problems, large and small. Please add comments explaining how you would fix it. Feel free to run and debug it if you find it helpful.
+#include <string>
+#include <iostream>
+#include <stdexcept>
+using namespace std;
+#define FALSE -1
+
+class NotifyResult
+{
+public:
+    // int data;
+    double data; //NH: Should be a double
+    string exePath;
+
+    NotifyResult( int input = 1 )
+    {
+        exePath = "C:\\Program Files (x86)\\SentryBay\\session.exe";
+    } 
+};
+
+class ChangeSynchronisation
+{
+public:
+    virtual NotifyResult& notify( double param1 )
+    {
+        NotifyResult rv;
+        throw "Unimplemented";
+        return rv;
+    }
+    //~ChangeSynchronisation() { throw "Unimplemented"; }
+};
+
+class ProfileSynchronisation : public ChangeSynchronisation
+{
+private: //NH
+NotifyResult *rv = new NotifyResult;//NH
+
+public:
+    NotifyResult& notify( double param1 )
+    {
+        //NotifyResult rv;
+        //rv.data = param1;
+        //cout << "ProfileSynchronisation::notify data:" << rv.data << endl;
+        
+        rv->data = param1;//NH
+        cout << "ProfileSynchronisation::notify data:" << rv->data << endl;//NH
+        return *rv; //NH
+    }
+};
+
+class ConnectionSynchronisation : public ChangeSynchronisation
+{
+public:
+    NotifyResult& notify( double param1 )
+    {
+        NotifyResult rv; 
+        rv.data = param1;
+        cout << "ConnectionSynchronisation::notify" << endl;
+        return rv;
+    }
+    NotifyResult notify( double param1, double param2 )
+    {
+        cout << param1 << "/" << param2 << endl;
+        if ( param1 < param2 )
+        {
+          cout << "less" << param1 << "/" << param2 << endl;
+          throw invalid_argument("ConnectionSynchronisation::Bad params");
+        }
+        NotifyResult rv; 
+        rv.data = param1 + param2;
+        cout << "ConnectionSynchronisation::notify2 data:" << rv.data << endl;
+        return rv;
+    }
+};
+
+bool syncSettings( string setting1, string setting2 )
+{
+    ChangeSynchronisation* change_synch = new ChangeSynchronisation();
+    bool rv = FALSE;
+    NotifyResult result;
+
+    change_synch = new ProfileSynchronisation();
+    double input1 = atof( setting1.c_str() );
+    result = change_synch->notify(input1);
+    cout.precision(17);
+    cout << "NH input1" << setting1 << input1 << endl;
+    delete change_synch;
+    cout << result.data << "/" << result.exePath << endl;    
+
+    ConnectionSynchronisation* connection_synch = new ConnectionSynchronisation();
+    double input2 = atof( setting2.c_str() );
+    try
+    {
+      result = connection_synch->notify( input1, input2 );
+    }
+    catch (invalid_argument &errormsg)
+    {
+      cerr << errormsg.what() << endl;
+      return false;
+    }
+    if( result.data < 0 )
+    {
+        delete change_synch;
+        return rv;
+    }
+    delete connection_synch;
+    cout << result.data << "/" << result.exePath << endl;
+    return true;
+}
+
+int main()
+{
+    if( syncSettings("1.999999999", "-1.000000001") == true )
+    {
+        cout << "TRUE" << endl;;
+        return 0;
+    }
+    return FALSE;
+}
